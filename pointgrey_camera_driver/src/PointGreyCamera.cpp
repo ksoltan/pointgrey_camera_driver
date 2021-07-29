@@ -34,6 +34,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <iostream>
 #include <sstream>
 #include <flycapture/FlyCapture2Defs.h>
+#include "ros/ros.h"
 
 using namespace FlyCapture2;
 
@@ -50,9 +51,12 @@ PointGreyCamera::~PointGreyCamera()
 
 bool PointGreyCamera::setNewConfiguration(pointgrey_camera_driver::PointGreyConfig &config, const uint32_t &level)
 {
+  ROS_WARN("HI: Setting New Configuration");
   if(!cam_.IsConnected())
   {
+    ROS_WARN("HI: Attempting to connect");
     PointGreyCamera::connect();
+    ROS_WARN("HI: Finished connect call");
   }
 
   // Activate mutex to prevent us from grabbing images during this time
@@ -872,6 +876,7 @@ void PointGreyCamera::setupGigEPacketDelay(PGRGuid & guid, unsigned int packet_d
 
 void PointGreyCamera::connect()
 {
+  ROS_WARN("HALO: PG.connect()");
   if(!cam_.IsConnected())
   {
     Error error;
@@ -886,8 +891,11 @@ void PointGreyCamera::connect()
     }
     else     // Connect to any camera (the first)
     {
+      ROS_WARN("HI: Getting camera from Index");
       error  = busMgr_.GetCameraFromIndex(0, &guid);
+      ROS_WARN("HI: Recorded result of getting camera from Index");
       PointGreyCamera::handleError("PointGreyCamera::connect Failed to get first connected camera", error);
+      ROS_WARN("HI: Handling error of getting camera from Index");
     }
 
     FlyCapture2::InterfaceType ifType;
@@ -1226,6 +1234,7 @@ void PointGreyCamera::handleError(const std::string &prefix, const FlyCapture2::
     std::stringstream out;
     out << error.GetType();
     std::string desc(error.GetDescription());
+    ROS_WARN("ERROR");
     throw std::runtime_error(prefix + start + out.str() + " " + desc);
   }
 }

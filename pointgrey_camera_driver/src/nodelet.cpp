@@ -96,8 +96,8 @@ private:
 
     try
     {
-      NODELET_DEBUG("Dynamic reconfigure callback with level: %d", level);
-      pg_.setNewConfiguration(config, level);
+      NODELET_WARN("Dynamic reconfigure callback with level: %d", level);
+      pg_.setNewConfiguration(config, level);\
 
       // Store needed parameters for the metadata message
       gain_ = config.gain;
@@ -157,7 +157,7 @@ private:
   */
   void connectCb()
   {
-    NODELET_DEBUG("Connect callback!");
+    ROS_WARN("HALO: Connect callback!");
     boost::mutex::scoped_lock scopedLock(connect_mutex_); // Grab the mutex.  Wait until we're done initializing before letting this function through.
     // Check if we should disconnect (there are 0 subscribers to our data)
     if(it_pub_.getNumSubscribers() == 0 && pub_->getPublisher().getNumSubscribers() == 0)
@@ -196,11 +196,12 @@ private:
     else if(!pubThread_)     // We need to connect
     {
       // Start the thread to loop through and publish messages
+      ROS_WARN("HALO: No pubThread, pollDevice.");
       pubThread_.reset(new boost::thread(boost::bind(&pointgrey_camera_driver::PointGreyCameraNodelet::devicePoll, this)));
     }
     else
     {
-      NODELET_DEBUG("Do nothing in callback.");
+      ROS_WARN("Do nothing in callback.");
     }
   }
 
@@ -211,6 +212,7 @@ private:
   */
   void onInit()
   {
+    NODELET_WARN("Entered onINIT()");
     // Get nodeHandles
     ros::NodeHandle &nh = getMTNodeHandle();
     ros::NodeHandle &pnh = getMTPrivateNodeHandle();
@@ -275,7 +277,9 @@ private:
     srv_ = boost::make_shared <dynamic_reconfigure::Server<pointgrey_camera_driver::PointGreyConfig> > (pnh);
     dynamic_reconfigure::Server<pointgrey_camera_driver::PointGreyConfig>::CallbackType f =
       boost::bind(&pointgrey_camera_driver::PointGreyCameraNodelet::paramCallback, this, _1, _2);
+    ROS_WARN("HI: SETTING Dyn Reconfigure Server PARAM CALLBACK");
     srv_->setCallback(f);
+    ROS_WARN("HI: FINISHED SETTING Dyn Reconfigure Server PARAM CALLBACK");
 
     // Start the camera info manager and attempt to load any configurations
     std::stringstream cinfo_name;
@@ -284,8 +288,10 @@ private:
 
     // Publish topics using ImageTransport through camera_info_manager (gives cool things like compression)
     it_.reset(new image_transport::ImageTransport(nh));
+    ROS_WARN("HI: Setting up Image transport subscriber status connectCb");
     image_transport::SubscriberStatusCallback cb = boost::bind(&PointGreyCameraNodelet::connectCb, this);
     it_pub_ = it_->advertiseCamera("image_raw", 5, cb, cb);
+    ROS_WARN("HI: Finished setting up Image transport subscriber status connectCb, and advertized image_raw");
 
     // Set up diagnostics
     updater_.setHardwareID("pointgrey_camera " + cinfo_name.str());
@@ -303,11 +309,13 @@ private:
     pnh.param<double>("min_acceptable_delay", min_acceptable, 0.0);
     double max_acceptable; // The maximum publishing delay (in seconds) before warning.
     pnh.param<double>("max_acceptable_delay", max_acceptable, 0.2);
+    ROS_WARN("HI: Setting up Diagnostic Publisher wfov camera subscriber status connectCb");
     ros::SubscriberStatusCallback cb2 = boost::bind(&PointGreyCameraNodelet::connectCb, this);
     pub_.reset(new diagnostic_updater::DiagnosedPublisher<wfov_camera_msgs::WFOVImage>(nh.advertise<wfov_camera_msgs::WFOVImage>("image", 5, cb2, cb2),
                updater_,
                diagnostic_updater::FrequencyStatusParam(&min_freq_, &max_freq_, freq_tolerance, window_size),
                diagnostic_updater::TimeStampStatusParam(min_acceptable, max_acceptable)));
+    ROS_WARN("HI: Finished setting up Diagnostic Publisher wfov camera subscriber status connectCb");
   }
 
   /**
@@ -348,6 +356,7 @@ private:
   */
   void devicePoll()
   {
+    ROS_WARN("HALO: Device Poll()");
     enum State
     {
         NONE
@@ -415,12 +424,13 @@ private:
 
           break;
         case DISCONNECTED:
+          ROS_WARN("State: DISCONNECTED");
           // Try connecting to the camera
           try
           {
-            NODELET_DEBUG("Connecting to camera.");
+            ROS_WARN("Connecting to camera.");
             pg_.connect();
-            NODELET_INFO("Connected to camera.");
+            ROS_WARN("Connected to camera.");
 
             // Set last configuration, forcing the reconfigure level to stop
             pg_.setNewConfiguration(config_, PointGreyCamera::LEVEL_RECONFIGURE_STOP);
@@ -449,6 +459,7 @@ private:
           }
           catch(std::runtime_error& e)
           {
+            ROS_ERROR("HALO: Runtime error caught!");
             NODELET_ERROR_COND(state_changed,
                 "Failed to connect with error: %s", e.what());
             ros::Duration(1.0).sleep(); // sleep for one second each time
