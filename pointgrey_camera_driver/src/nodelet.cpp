@@ -51,6 +51,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include <fstream>
 
+#include <signal.h>
+
 namespace pointgrey_camera_driver
 {
 
@@ -147,6 +149,8 @@ private:
     catch(std::runtime_error& e)
     {
       NODELET_ERROR("Reconfigure Callback failed with error: %s", e.what());
+      // If we fail, crash the node. This function gets called in onInit where the camera is initially connected to.
+      raise(SIGABRT);
     }
   }
 
@@ -379,6 +383,7 @@ private:
       switch(state)
       {
         case ERROR:
+          ROS_WARN("State: ERROR");
           // Generally there's no need to stop before disconnecting after an
           // error. Indeed, stop will usually fail.
 #if STOP_ON_ERROR
@@ -406,6 +411,7 @@ private:
           break;
 #endif
         case STOPPED:
+          ROS_WARN("State: STOPPED");
           // Try disconnecting from the camera
           try
           {
@@ -460,13 +466,16 @@ private:
           catch(std::runtime_error& e)
           {
             ROS_ERROR("HALO: Runtime error caught!");
-            NODELET_ERROR_COND(state_changed,
-                "Failed to connect with error: %s", e.what());
+            NODELET_ERROR("Failed to connect with error: %s", e.what());
+            // NODELET_ERROR_COND(state_changed,
+            //     "Failed to connect with error: %s", e.what());
+            state = ERROR;
             ros::Duration(1.0).sleep(); // sleep for one second each time
           }
 
           break;
         case CONNECTED:
+          ROS_WARN("State: CONNECTED");
           // Try starting the camera
           try
           {
@@ -485,6 +494,7 @@ private:
 
           break;
         case STARTED:
+          ROS_WARN("State: STARTED");
           try
           {
             wfov_camera_msgs::WFOVImagePtr wfov_image(new wfov_camera_msgs::WFOVImage);
@@ -533,6 +543,9 @@ private:
           catch(CameraTimeoutException& e)
           {
             NODELET_WARN("%s", e.what());
+            // I think the second time you unplug camera during operation, it gets caught here
+            // so to force reconnect, crash program here
+            raise(SIGABRT);
           }
           catch(CameraImageConsistencyError& e)
           {

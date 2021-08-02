@@ -883,19 +883,22 @@ void PointGreyCamera::connect()
     PGRGuid guid;  // GUIDS are NOT persistent accross executions, do not store them.
     if(serial_ != 0)  // If we have a specific camera to connect to.
     {
+      ROS_WARN("HALO: Getting camera from Serial number");
       error = busMgr_.GetCameraFromSerialNumber(serial_, &guid);
+      ROS_WARN("HALO: Recorded result of getting camera from Serial number");
       std::stringstream serial_string;
       serial_string << serial_;
       std::string msg = "PointGreyCamera::connect Could not find camera with serial number: " + serial_string.str() + ". Is that camera plugged in?";
       PointGreyCamera::handleError(msg, error);
+      ROS_WARN("HALO: Handled error of getting camera from Index");
     }
     else     // Connect to any camera (the first)
     {
-      ROS_WARN("HI: Getting camera from Index");
+      ROS_WARN("HALO: Getting camera from Index");
       error  = busMgr_.GetCameraFromIndex(0, &guid);
-      ROS_WARN("HI: Recorded result of getting camera from Index");
+      ROS_WARN("HALO: Recorded result of getting camera from Index");
       PointGreyCamera::handleError("PointGreyCamera::connect Failed to get first connected camera", error);
-      ROS_WARN("HI: Handling error of getting camera from Index");
+      ROS_WARN("HALO: Handled error of getting camera from Index");
     }
 
     FlyCapture2::InterfaceType ifType;
@@ -925,8 +928,11 @@ void PointGreyCamera::connect()
         PointGreyCamera::handleError("PointGreyCamera::SetGigEConfig could not set GigE settings (packet resend)", error);
     }
 
+    ROS_WARN("HALO: Connecting to cam with guid");
     error = cam_.Connect(&guid);
+    ROS_WARN("HALO: Handling error from connecting to cam with guid");
     PointGreyCamera::handleError("PointGreyCamera::connect Failed to connect to camera", error);
+    ROS_WARN("HALO: Connected to cam with guid");
 
     // Get camera info to check if camera is running in color or mono mode
     CameraInfo cInfo;
